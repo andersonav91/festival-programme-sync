@@ -28,4 +28,21 @@ RSpec.describe Screening, type: :model do
     expect(build(:screening, status: "scheduled")).to be_valid
     expect(build(:screening, status: "cancelled")).to be_valid
   end
+
+  it "rejects unknown statuses" do
+    expect { screening.status = "postponed" }
+      .to raise_error(ArgumentError, /not a valid status/)
+  end
+
+  it "requires a film" do
+    screening.film = nil
+
+    expect(screening).not_to be_valid
+  end
+
+  it "requires a venue" do
+    screening.venue = nil
+
+    expect(screening).not_to be_valid
+  end
 end

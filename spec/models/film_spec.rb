@@ -35,4 +35,11 @@ RSpec.describe Film, type: :model do
 
     expect(film).not_to be_valid
   end
+
+  it "destroys its screenings when deleted" do
+    persisted_film = create(:film)
+    create(:screening, film: persisted_film)
+
+    expect { persisted_film.destroy! }.to change(Screening, :count).by(-1)
+  end
 end

@@ -29,4 +29,11 @@ RSpec.describe Venue, type: :model do
 
     expect(venue).not_to be_valid
   end
+
+  it "destroys its screenings when deleted" do
+    persisted_venue = create(:venue)
+    create(:screening, venue: persisted_venue)
+
+    expect { persisted_venue.destroy! }.to change(Screening, :count).by(-1)
+  end
 end
