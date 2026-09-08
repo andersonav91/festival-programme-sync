@@ -20,6 +20,22 @@ Every run creates a `ProgrammeSyncRun` row with status, timestamps, request
 parameters, counters and captured errors. That makes it possible to tell whether
 a run completed and what it changed afterwards.
 
+## Service Design
+
+The sync is split into small service objects:
+
+- `ProgrammeSync` orchestrates pagination, record-level error handling and run
+  completion.
+- `ProgrammeSync::Client` owns the HTTP contract with the mock upstream API.
+- `ProgrammeSync::RecordSyncer` owns the transactional upsert of one screening
+  and its nested film and venue.
+- `ProgrammeSync::ChangeSet` tracks created/updated counters without mixing
+  counting logic into persistence code.
+- `ProgrammeSync::RunRecorder` owns `ProgrammeSyncRun` lifecycle updates.
+
+This keeps the public entry point simple while separating API, persistence,
+counting and observability responsibilities.
+
 Current coverage proves that:
 
 - Generation 1 imports all screenings and nested film/venue records.
