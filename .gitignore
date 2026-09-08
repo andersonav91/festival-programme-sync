@@ -37,3 +37,6 @@
 
 # Local helper logs.
 /*.log
+
+# Test coverage report.
+/coverage/
