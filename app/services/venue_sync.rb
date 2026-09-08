@@ -14,10 +14,10 @@ class VenueSync
 
   def call
     @venues.each do |attrs|
-      venue = Venue.find_or_initialize_by(name: attrs["name"])
-      venue.external_id = attrs.fetch("id")
-      venue.address     = attrs["address"]
-      venue.capacity    = attrs["capacity"]
+      venue = Venue.find_or_initialize_by(external_id: attrs.fetch("id"))
+      venue.name     = attrs["name"]
+      venue.address  = attrs["address"]
+      venue.capacity = attrs["capacity"]
       venue.save!
     end
   end
