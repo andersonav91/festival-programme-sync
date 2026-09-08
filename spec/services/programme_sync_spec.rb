@@ -6,9 +6,19 @@ RSpec.describe ProgrammeSync do
       result = described_class.new(connection: api_connection(generation: 1)).call
 
       expect(result.processed).to eq(60)
+      expect(result.records_failed).to eq(0)
       expect(result.screenings_created).to eq(60)
       expect(result.films_created).to eq(12)
       expect(result.venues_created).to eq(6)
+      expect(result.run).to be_completed
+      expect(result.run).to have_attributes(
+        processed_count: 60,
+        failed_count: 0,
+        screenings_created_count: 60,
+        films_created_count: 12,
+        venues_created_count: 6
+      )
+      expect(result.run.finished_at).to be_present
       expect(Screening.count).to eq(60)
       expect(Film.count).to eq(12)
       expect(Venue.count).to eq(6)
@@ -51,13 +61,58 @@ RSpec.describe ProgrammeSync do
       expect(Screening.find_by!(external_id: "SCR-0061")).to be_scheduled
       expect(Screening.find_by!(external_id: "SCR-0062")).to be_scheduled
     end
+
+    it "keeps records already processed when the upstream API fails partway" do
+      result = described_class.new(connection: api_connection(generation: 1, fail_after: 8), fail_after: 8).call
+
+      expect(result.processed).to eq(8)
+      expect(result.records_failed).to eq(0)
+      expect(result.errors).to contain_exactly(
+        hash_including(type: "upstream", message: "Upstream returned 500", page: 2)
+      )
+      expect(result.run).to be_failed
+      expect(result.run).to have_attributes(
+        processed_count: 8,
+        failed_count: 0,
+        screenings_created_count: 8,
+        error_message: "Upstream returned 500"
+      )
+      expect(Screening.count).to eq(8)
+      expect(Film.count).to eq(8)
+      expect(Venue.count).to eq(6)
+    end
+
+    it "records bad screening payloads and continues with later records" do
+      result = described_class.new(connection: api_connection(generation: 1, invalid_screening_id: "SCR-0002")).call
+
+      expect(result.processed).to eq(59)
+      expect(result.records_failed).to eq(1)
+      expect(result.errors).to contain_exactly(
+        hash_including(type: "record", screening_id: "SCR-0002")
+      )
+      expect(result.run).to be_failed
+      expect(result.run).to have_attributes(
+        processed_count: 59,
+        failed_count: 1,
+        screenings_created_count: 59
+      )
+      expect(Screening.exists?(external_id: "SCR-0002")).to be(false)
+      expect(Screening.count).to eq(59)
+    end
   end
 
-  def api_connection(generation:)
-    records = MockApi::Dataset.records(generation: generation)
+  def api_connection(generation:, fail_after: nil, invalid_screening_id: nil)
+    records = MockApi::Dataset.records(generation: generation).map(&:deep_dup)
+    if invalid_screening_id
+      records.find { |record| record.fetch("id") == invalid_screening_id }.tap do |record|
+        record["status"] = "postponed"
+      end
+    end
+
     stubs = Faraday::Adapter::Test::Stubs.new do |stub|
-      records.each_slice(MockApi::Dataset::PER_PAGE).with_index(1) do |slice, page|
-        stub.get(request_path(page, generation)) do
+      visible_records = fail_after ? records.first(fail_after) : records
+      visible_records.each_slice(MockApi::Dataset::PER_PAGE).with_index(1) do |slice, page|
+        stub.get(request_path(page, generation, fail_after)) do
           [
             200,
             { "Content-Type" => "application/json" },
@@ -71,13 +126,29 @@ RSpec.describe ProgrammeSync do
           ]
         end
       end
+
+      if fail_after
+        failed_page = (visible_records.size.to_f / MockApi::Dataset::PER_PAGE).ceil + 1
+        stub.get(request_path(failed_page, generation, fail_after)) do
+          [ 500, { "Content-Type" => "application/json" }, { error: "Upstream festival system unavailable" }.to_json ]
+        end
+      end
     end
 
     Faraday.new(url: "http://festival.test") { |builder| builder.adapter :test, stubs }
   end
 
-  def request_path(page, generation)
-    query = generation == 1 ? "page=#{page}" : "page=#{page}&generation=#{generation}"
+  def request_path(page, generation, fail_after = nil)
+    query = if fail_after && generation == 1
+      "fail_after=#{fail_after}&page=#{page}"
+    elsif fail_after
+      "fail_after=#{fail_after}&generation=#{generation}&page=#{page}"
+    elsif generation == 1
+      "page=#{page}"
+    else
+      "page=#{page}&generation=#{generation}"
+    end
+
     "/mock_api/screenings?#{query}"
   end
 end

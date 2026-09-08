@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_31_120003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_08_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_31_120003) do
     t.datetime "updated_at", null: false
     t.integer "year"
     t.index ["external_id"], name: "index_films_on_external_id", unique: true
+  end
+
+  create_table "programme_sync_runs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "error_details", default: [], null: false
+    t.text "error_message"
+    t.integer "failed_count", default: 0, null: false
+    t.integer "films_created_count", default: 0, null: false
+    t.integer "films_updated_count", default: 0, null: false
+    t.datetime "finished_at"
+    t.integer "generation"
+    t.integer "processed_count", default: 0, null: false
+    t.jsonb "request_params", default: {}, null: false
+    t.integer "screenings_created_count", default: 0, null: false
+    t.integer "screenings_updated_count", default: 0, null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "running", null: false
+    t.datetime "updated_at", null: false
+    t.integer "venues_created_count", default: 0, null: false
+    t.integer "venues_updated_count", default: 0, null: false
+    t.index ["started_at"], name: "index_programme_sync_runs_on_started_at"
+    t.index ["status"], name: "index_programme_sync_runs_on_status"
   end
 
   create_table "screenings", force: :cascade do |t|
