@@ -2,7 +2,7 @@ require "simplecov"
 
 SimpleCov.start "rails" do
   enable_coverage :branch
-  minimum_coverage line: 80, branch: 80
+  minimum_coverage line: 90, branch: 90
 
   skip "/bin/"
   skip "/config/"

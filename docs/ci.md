@@ -20,7 +20,7 @@ bin/ci
 - `bin/importmap audit`
 - `bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error`
 
-RSpec runs with SimpleCov enabled and enforces the configured 80% minimum for
+RSpec runs with SimpleCov enabled and enforces the configured 90% minimum for
 line and branch coverage.
 
 To run the same pipeline locally through Docker:

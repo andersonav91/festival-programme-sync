@@ -12,10 +12,11 @@ docker compose run --rm -e RAILS_ENV=test web sh -c "bin/rails db:prepare && bun
 SimpleCov is configured with branch coverage enabled and excludes generated or
 framework-heavy paths: `bin/`, `config/`, `db/` and `spec/`.
 
-The suite enforces minimum coverage for both line and branch coverage:
+The suite enforces minimum coverage above the assessment baseline for both line
+and branch coverage:
 
-- Line coverage: 80%
-- Branch coverage: 80%
+- Line coverage: 90%
+- Branch coverage: 90%
 
 The request and query specs also cover the server-rendered screenings table,
 including the Turbo Frame contract, title search, sortable columns and

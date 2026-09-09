@@ -98,5 +98,5 @@ docker compose run --rm web bundle exec rubocop
 ```
 
 GitHub Actions runs the CI pipeline on pushes to `main` and pull requests. See
-`docs/ci.md` for the exact checks. The test suite enforces at least 80% line and
+`docs/ci.md` for the exact checks. The test suite enforces at least 90% line and
 branch coverage through SimpleCov.
