@@ -26,6 +26,12 @@ make sh        # shell inside Docker
 make psql      # psql into the development database
 ```
 
+The full CI pipeline can also be run locally:
+
+```bash
+docker compose run --rm -e RAILS_ENV=test web bin/ci
+```
+
 Run the sync manually from the console:
 
 ```ruby
@@ -88,4 +94,6 @@ docker compose run --rm -e RAILS_ENV=test web sh -c "bin/rails db:prepare && bun
 docker compose run --rm web bundle exec rubocop
 ```
 
-Current suite enforces at least 80% line and branch coverage through SimpleCov.
+GitHub Actions runs the CI pipeline on pushes to `main` and pull requests. See
+`docs/ci.md` for the exact checks. The test suite enforces at least 80% line and
+branch coverage through SimpleCov.

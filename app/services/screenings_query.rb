@@ -5,10 +5,10 @@ class ScreeningsQuery
   DIRECTIONS = %w[asc desc].freeze
   PER_PAGE = 15
   SORTS = {
-    "film" => "films.title",
-    "venue" => "venues.name",
-    "starts" => "screenings.starts_at",
-    "status" => "screenings.status"
+    "film" => Film.arel_table[:title],
+    "venue" => Venue.arel_table[:name],
+    "starts" => Screening.arel_table[:starts_at],
+    "status" => Screening.arel_table[:status]
   }.freeze
 
   Result = Struct.new(
@@ -88,7 +88,10 @@ class ScreeningsQuery
   end
 
   def apply_sort(scope)
-    scope.order(Arel.sql("#{SORTS.fetch(sort_key)} #{sort_direction.upcase}"), id: :asc)
+    column = SORTS.fetch(sort_key)
+    primary_order = sort_direction == "desc" ? column.desc : column.asc
+
+    scope.order(primary_order, Screening.arel_table[:id].asc)
   end
 
   def current_page(total_pages)
