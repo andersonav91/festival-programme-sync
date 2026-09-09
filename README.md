@@ -1,7 +1,7 @@
 # Festival Programme Sync
 
 Rails 8 app for syncing a film festival programme from the mock upstream API at
-`/mock_api/screenings`.
+`/mock_api/screenings`. It uses PostgreSQL, Sidekiq, Hotwire and Tailwind.
 
 ## Running
 
@@ -24,11 +24,6 @@ make test      # run RSpec
 make console   # Rails console inside Docker
 make sh        # shell inside Docker
 make psql      # psql into the development database
-```
-
-The full CI pipeline can also be run locally:
-
-```bash
 docker compose run --rm -e RAILS_ENV=test web bin/ci
 ```
 
@@ -40,45 +35,30 @@ ProgrammeSyncJob.perform_later(generation: 2)
 ProgrammeSyncJob.perform_later(generation: 1, fail_after: 8)
 ```
 
-The screenings page supports:
-
-- Date, venue and title filters.
-- Today's date as the default date filter.
-- A `Clear filters` link that clears the form and bypasses the default date.
-- Sortable Film, Venue, Starts and Status columns.
-- Numbered pagination with Previous and Next controls.
-- CSV export for the currently filtered and sorted result set.
-
-The programme sync is scheduled hourly through Sidekiq Cron. See
-`docs/scheduling.md` for the schedule configuration.
-
 ## Implementation Notes
 
-The sync uses upstream ids as local `external_id` values for films, venues and
-screenings. That keeps imports idempotent across repeated runs and handles
-upstream renames without duplicate rows. I fixed the inherited `VenueSync` bug
-where venues were matched by `name`; that would create a second venue when the
-upstream system renames an existing venue.
+`ProgrammeSync` imports paginated screenings idempotently using upstream ids as
+local `external_id` values. It handles retitled films, renamed venues, moved and
+cancelled screenings, record-level failures and upstream failures without losing
+records already committed. The inherited `VenueSync` bug was fixed to match on
+external id instead of venue name.
 
-`ProgrammeSync` is split into smaller service objects for the API client,
-record-level transactional upserts, change counting, run recording and locking.
-Each screening is synced in its own transaction, so malformed records can be
-captured without rolling back prior records. API failures between pages mark the
-run failed while preserving records already committed. The API client also sets
-connection and request timeouts so slow upstream responses are reported as
-upstream failures.
+The sync is split into service objects for the API client, transactional record
+upserts, change counting, run recording and locking. Runs are recorded in
+`ProgrammeSyncRun`, scheduled hourly with Sidekiq Cron, retried on upstream
+failures and protected from overlap with a PostgreSQL advisory lock.
 
-Every run writes a `ProgrammeSyncRun` with status, timestamps, request params,
-created/updated counters and captured errors. `ProgrammeSyncJob` runs through
-Sidekiq and uses a PostgreSQL advisory lock so overlapping jobs are skipped and
-recorded instead of importing concurrently.
+The `/screenings` page remains server-rendered with Hotwire. It supports date,
+venue and title filters, sortable columns, compact numbered pagination and CSV
+export of the filtered result set.
 
-The screenings list remains server-rendered. The filter form targets the Turbo
-Frame around the results table, supports date, venue and title search, and the
-query eager loads films and venues to avoid N+1 lookups. Sorting, pagination and
-CSV export share the same `ScreeningsQuery` service so the exported file matches
-the filtered table, except that CSV exports all matching rows instead of only the
-visible page.
+More detail:
+
+- `docs/programme_sync.md`
+- `docs/scheduling.md`
+- `docs/screening_filters.md`
+- `docs/test_coverage.md`
+- `docs/ci.md`
 
 ## Trade-offs
 
@@ -87,10 +67,9 @@ I left upstream deletion handling explicit rather than automatic: when generatio
 whether disappearing upstream records mean deletion, cancellation, embargo or API
 bug before mutating public programme data.
 
-With more time I would add a schedule configuration for Sidekiq, operational UI
-for recent sync runs, alerting around failed runs, and richer retry/backoff rules
-for upstream outages. For very large programmes, I would also switch CSV export
-to streaming and move the pagination UI to a component or presenter.
+With more time I would add an operational UI for recent sync runs, alerting
+around failed runs, richer retry/backoff rules for upstream outages, streaming
+CSV export for large programmes and a component/presenter for pagination.
 
 ## Verification
 
