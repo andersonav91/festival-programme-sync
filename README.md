@@ -49,6 +49,9 @@ The screenings page supports:
 - Numbered pagination with Previous and Next controls.
 - CSV export for the currently filtered and sorted result set.
 
+The programme sync is scheduled hourly through Sidekiq Cron. See
+`docs/scheduling.md` for the schedule configuration.
+
 ## Implementation Notes
 
 The sync uses upstream ids as local `external_id` values for films, venues and

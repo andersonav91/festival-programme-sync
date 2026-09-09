@@ -1,0 +1,5 @@
+programme_sync_hourly:
+  class: ProgrammeSyncJob
+  queue: default
+  cron: "0 * * * *"
+  description: Sync festival programme from upstream API every hour.
