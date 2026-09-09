@@ -82,6 +82,25 @@ RSpec.describe ProgrammeSync do
       expect(Venue.count).to eq(6)
     end
 
+    it "can raise upstream errors after recording the failed run" do
+      sync = described_class.new(
+        connection: api_connection(generation: 1, fail_after: 8),
+        fail_after: 8,
+        raise_on_upstream_error: true
+      )
+
+      expect { sync.call }.to raise_error(ProgrammeSync::UpstreamError, "Upstream returned 500")
+
+      run = ProgrammeSyncRun.last
+      expect(run).to be_failed
+      expect(run).to have_attributes(
+        processed_count: 8,
+        screenings_created_count: 8,
+        error_message: "Upstream returned 500"
+      )
+      expect(Screening.count).to eq(8)
+    end
+
     it "records bad screening payloads and continues with later records" do
       result = described_class.new(connection: api_connection(generation: 1, invalid_screening_id: "SCR-0002")).call
 

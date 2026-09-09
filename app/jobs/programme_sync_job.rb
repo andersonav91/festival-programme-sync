@@ -1,11 +1,13 @@
 class ProgrammeSyncJob < ApplicationJob
   queue_as :default
 
+  retry_on ProgrammeSync::UpstreamError, wait: :polynomially_longer, attempts: 3
+
   def perform(generation: nil, fail_after: nil)
     result = nil
 
     locked = ProgrammeSync::Lock.with_lock do
-      result = ProgrammeSync.new(generation: generation, fail_after: fail_after).call
+      result = ProgrammeSync.new(generation: generation, fail_after: fail_after, raise_on_upstream_error: true).call
     end
 
     return record_skipped_run(generation: generation, fail_after: fail_after) unless locked

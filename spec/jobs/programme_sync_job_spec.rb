@@ -6,9 +6,19 @@ RSpec.describe ProgrammeSyncJob, type: :job do
     sync = instance_double(ProgrammeSync, call: result)
 
     allow(ProgrammeSync::Lock).to receive(:with_lock).and_yield.and_return(result)
-    allow(ProgrammeSync).to receive(:new).with(generation: 2, fail_after: nil).and_return(sync)
+    allow(ProgrammeSync).to receive(:new)
+      .with(generation: 2, fail_after: nil, raise_on_upstream_error: true)
+      .and_return(sync)
 
     expect(described_class.perform_now(generation: 2)).to eq(result)
+  end
+
+  it "declares retries for upstream failures" do
+    retry_handler = described_class.rescue_handlers.find do |handler|
+      handler.first == "ProgrammeSync::UpstreamError"
+    end
+
+    expect(retry_handler).to be_present
   end
 
   it "records a skipped run when another sync is already running" do

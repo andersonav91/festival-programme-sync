@@ -15,10 +15,11 @@ class ProgrammeSync
     keyword_init: true
   )
 
-  def initialize(api_url: ENV.fetch("FESTIVAL_API_URL", "http://localhost:3000"), generation: nil, fail_after: nil, connection: nil)
+  def initialize(api_url: ENV.fetch("FESTIVAL_API_URL", "http://localhost:3000"), generation: nil, fail_after: nil, connection: nil, raise_on_upstream_error: false)
     @client = Client.new(api_url: api_url, generation: generation, fail_after: fail_after, connection: connection)
     @generation = generation
     @recorder = RunRecorder.new(generation: generation, request_params: client.run_params)
+    @raise_on_upstream_error = raise_on_upstream_error
   end
 
   def call
@@ -42,12 +43,18 @@ class ProgrammeSync
   rescue UpstreamError => e
     result.errors << error_payload(type: "upstream", message: e.message, page: page)
     recorder.finish(run, result, error_message: e.message)
+    raise if raise_on_upstream_error?
+
     result
   end
 
   private
 
   attr_reader :client, :recorder
+
+  def raise_on_upstream_error?
+    @raise_on_upstream_error
+  end
 
   def sync_record(record, result)
     RecordSyncer.new(record).call.merge_into(result)
