@@ -16,6 +16,11 @@ rolled back, captured in the run errors and the sync continues with later
 records. If the upstream API fails between pages, records already committed stay
 in place and the run is marked as failed.
 
+The API client sets explicit Faraday timeouts: 2 seconds to open the connection
+and 5 seconds for the request. Slow or unreachable upstream responses are wrapped
+as `ProgrammeSync::UpstreamError`, which keeps them on the same observability and
+retry path as non-successful HTTP responses.
+
 Every run creates a `ProgrammeSyncRun` row with status, timestamps, request
 parameters, counters and captured errors. That makes it possible to tell whether
 a run completed and what it changed afterwards.
@@ -54,6 +59,7 @@ Current coverage proves that:
   duplicating films or venues.
 - `fail_after=8` preserves the eight records already processed and records the
   upstream failure.
+- Upstream timeouts are wrapped as upstream failures.
 - Malformed screening payloads are captured without abandoning the whole run.
 - The background job calls the sync when the lock is available and records a
   skipped run when another sync is already running.

@@ -64,7 +64,9 @@ upstream system renames an existing venue.
 record-level transactional upserts, change counting, run recording and locking.
 Each screening is synced in its own transaction, so malformed records can be
 captured without rolling back prior records. API failures between pages mark the
-run failed while preserving records already committed.
+run failed while preserving records already committed. The API client also sets
+connection and request timeouts so slow upstream responses are reported as
+upstream failures.
 
 Every run writes a `ProgrammeSyncRun` with status, timestamps, request params,
 created/updated counters and captured errors. `ProgrammeSyncJob` runs through

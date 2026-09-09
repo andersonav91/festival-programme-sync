@@ -23,10 +23,29 @@ RSpec.describe ProgrammeSync::Client do
     expect { client.fetch_page(2) }.to raise_error(ProgrammeSync::UpstreamError, "Upstream returned 500")
   end
 
+  it "wraps timeout failures as upstream errors" do
+    connection = instance_double(Faraday::Connection)
+    allow(connection).to receive(:get).and_raise(Faraday::TimeoutError, "execution expired")
+    client = described_class.new(api_url: "http://festival.test", generation: nil, fail_after: nil, connection: connection)
+
+    expect { client.fetch_page(1) }.to raise_error(
+      ProgrammeSync::UpstreamError,
+      "Upstream request failed: execution expired"
+    )
+  end
+
   it "exposes request params used for run observability" do
     client = described_class.new(api_url: "http://festival.test", generation: 2, fail_after: 8)
 
     expect(client.run_params).to eq(generation: 2, fail_after: 8)
+  end
+
+  it "configures connection timeouts for the upstream API" do
+    client = described_class.new(api_url: "http://festival.test", generation: nil, fail_after: nil)
+    connection = client.send(:connection)
+
+    expect(connection.options.open_timeout).to eq(described_class::DEFAULT_OPEN_TIMEOUT)
+    expect(connection.options.timeout).to eq(described_class::DEFAULT_TIMEOUT)
   end
 
   def connection_for(status, body, query)
