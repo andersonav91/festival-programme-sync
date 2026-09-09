@@ -51,5 +51,20 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Run CI
-        run: bin/ci
+      - name: Set up database
+        run: bin/rails db:prepare
+
+      - name: Build Tailwind CSS
+        run: bin/rails tailwindcss:build
+
+      - name: Run RuboCop
+        run: bin/rubocop
+
+      - name: Run RSpec
+        run: bundle exec rspec
+
+      - name: Run bundler-audit
+        run: bin/bundler-audit
+
+      - name: Run Brakeman
+        run: bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error
