@@ -17,5 +17,7 @@ The suite enforces minimum coverage for both line and branch coverage:
 - Line coverage: 80%
 - Branch coverage: 80%
 
-The request and query specs also cover the server-rendered screenings filters,
-including the Turbo Frame contract and title search.
+The request and query specs also cover the server-rendered screenings table,
+including the Turbo Frame contract, title search, sortable columns and
+pagination. CSV export specs cover filtered exports, unpaginated export output
+and CSV escaping for values with punctuation or line breaks.

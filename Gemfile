@@ -23,6 +23,8 @@ gem "sidekiq"
 gem "redis", ">= 4.0.1"
 # HTTP client used by the programme sync to talk to the (mock) external API
 gem "faraday"
+# CSV export support. Ruby 3.4 no longer ships csv as a default gem.
+gem "csv"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"

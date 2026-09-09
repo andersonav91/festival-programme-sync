@@ -34,6 +34,15 @@ ProgrammeSyncJob.perform_later(generation: 2)
 ProgrammeSyncJob.perform_later(generation: 1, fail_after: 8)
 ```
 
+The screenings page supports:
+
+- Date, venue and title filters.
+- Today's date as the default date filter.
+- A `Clear filters` link that clears the form and bypasses the default date.
+- Sortable Film, Venue, Starts and Status columns.
+- Numbered pagination with Previous and Next controls.
+- CSV export for the currently filtered and sorted result set.
+
 ## Implementation Notes
 
 The sync uses upstream ids as local `external_id` values for films, venues and
@@ -55,7 +64,10 @@ recorded instead of importing concurrently.
 
 The screenings list remains server-rendered. The filter form targets the Turbo
 Frame around the results table, supports date, venue and title search, and the
-query eager loads films and venues to avoid N+1 lookups.
+query eager loads films and venues to avoid N+1 lookups. Sorting, pagination and
+CSV export share the same `ScreeningsQuery` service so the exported file matches
+the filtered table, except that CSV exports all matching rows instead of only the
+visible page.
 
 ## Trade-offs
 
@@ -66,7 +78,8 @@ bug before mutating public programme data.
 
 With more time I would add a schedule configuration for Sidekiq, operational UI
 for recent sync runs, alerting around failed runs, and richer retry/backoff rules
-for upstream outages.
+for upstream outages. For very large programmes, I would also switch CSV export
+to streaming and move the pagination UI to a component or presenter.
 
 ## Verification
 
