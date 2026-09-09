@@ -21,7 +21,9 @@ bin/ci
 - `bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error`
 
 RSpec runs with SimpleCov enabled and enforces the configured 90% minimum for
-line and branch coverage.
+line and branch coverage. The test helper uses explicit table truncation between
+examples instead of transactional fixtures, which keeps specs deterministic and
+lets PostgreSQL constraint tests exercise real database errors safely.
 
 To run the same pipeline locally through Docker:
 
