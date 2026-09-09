@@ -30,4 +30,16 @@ RSpec.describe ProgrammeSync::RecordSyncer do
     expect(Venue.count).to eq(1)
     expect(Screening.count).to eq(1)
   end
+
+  it "restores a previously removed screening when it reappears upstream" do
+    record = MockApi::Dataset.generation_one.first
+    described_class.new(record).call
+    screening = Screening.find_by!(external_id: record.fetch("id"))
+    screening.update!(removed_at: Time.current)
+
+    changes = described_class.new(record).call
+
+    expect(changes.screenings_updated).to eq(1)
+    expect(screening.reload).not_to be_removed
+  end
 end

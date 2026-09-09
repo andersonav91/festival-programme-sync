@@ -39,9 +39,9 @@ ProgrammeSyncJob.perform_later(generation: 1, fail_after: 8)
 
 `ProgrammeSync` imports paginated screenings idempotently using upstream ids as
 local `external_id` values. It handles retitled films, renamed venues, moved and
-cancelled screenings, record-level failures and upstream failures without losing
-records already committed. The inherited `VenueSync` bug was fixed to match on
-external id instead of venue name.
+cancelled screenings, upstream removals, record-level failures and upstream
+failures without losing records already committed. The inherited `VenueSync` bug
+was fixed to match on external id instead of venue name.
 
 The sync is split into service objects for the API client, transactional record
 upserts, change counting, run recording and locking. Runs are recorded in
@@ -62,10 +62,10 @@ More detail:
 
 ## Trade-offs
 
-I left upstream deletion handling explicit rather than automatic: when generation
-2 omits `SCR-0060`, the local row is retained. In production I would confirm
-whether disappearing upstream records mean deletion, cancellation, embargo or API
-bug before mutating public programme data.
+Upstream deletions are handled as soft removals on successful full syncs. In
+production I would confirm the business meaning of disappearing records before
+deciding whether `removed_at` should hide them immediately or enter an editorial
+review state.
 
 With more time I would add an operational UI for recent sync runs, alerting
 around failed runs, richer retry/backoff rules for upstream outages, streaming

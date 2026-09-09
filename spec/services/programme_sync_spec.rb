@@ -47,10 +47,13 @@ RSpec.describe ProgrammeSync do
       expect(result.processed).to eq(61)
       expect(result.screenings_created).to eq(2)
       expect(result.screenings_updated).to eq(7)
+      expect(result.screenings_removed).to eq(1)
       expect(result.films_updated).to eq(1)
       expect(result.venues_updated).to eq(1)
+      expect(result.run.screenings_removed_count).to eq(1)
 
       expect(Screening.count).to eq(62)
+      expect(Screening.active.count).to eq(61)
       expect(Film.count).to eq(12)
       expect(Venue.count).to eq(6)
 
@@ -58,6 +61,7 @@ RSpec.describe ProgrammeSync do
       expect(Venue.find_by!(external_id: "VEN-03").name).to eq("City Gallery Auditorium")
       expect(Screening.find_by!(external_id: "SCR-0001").venue.external_id).to eq("VEN-06")
       expect(Screening.find_by!(external_id: "SCR-0010")).to be_cancelled
+      expect(Screening.find_by!(external_id: "SCR-0060")).to be_removed
       expect(Screening.find_by!(external_id: "SCR-0061")).to be_scheduled
       expect(Screening.find_by!(external_id: "SCR-0062")).to be_scheduled
     end
@@ -75,6 +79,7 @@ RSpec.describe ProgrammeSync do
         processed_count: 8,
         failed_count: 0,
         screenings_created_count: 8,
+        screenings_removed_count: 0,
         error_message: "Upstream returned 500"
       )
       expect(Screening.count).to eq(8)
@@ -113,7 +118,8 @@ RSpec.describe ProgrammeSync do
       expect(result.run).to have_attributes(
         processed_count: 59,
         failed_count: 1,
-        screenings_created_count: 59
+        screenings_created_count: 59,
+        screenings_removed_count: 0
       )
       expect(Screening.exists?(external_id: "SCR-0002")).to be(false)
       expect(Screening.count).to eq(59)

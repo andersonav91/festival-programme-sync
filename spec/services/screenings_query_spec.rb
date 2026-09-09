@@ -118,4 +118,14 @@ RSpec.describe ScreeningsQuery do
     expect(result.records.size).to eq(16)
     expect(result.total_count).to eq(16)
   end
+
+  it "does not return screenings removed upstream" do
+    active = create(:screening)
+    removed = create(:screening, removed_at: Time.current)
+
+    result = described_class.new({}).call
+
+    expect(result.records).to contain_exactly(active)
+    expect(result.records).not_to include(removed)
+  end
 end

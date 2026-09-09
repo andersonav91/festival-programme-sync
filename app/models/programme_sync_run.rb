@@ -11,5 +11,6 @@ class ProgrammeSyncRun < ApplicationRecord
             :venues_updated_count,
             :screenings_created_count,
             :screenings_updated_count,
+            :screenings_removed_count,
             numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_08_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_08_203100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -37,6 +37,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_120000) do
     t.integer "processed_count", default: 0, null: false
     t.jsonb "request_params", default: {}, null: false
     t.integer "screenings_created_count", default: 0, null: false
+    t.integer "screenings_removed_count", default: 0, null: false
     t.integer "screenings_updated_count", default: 0, null: false
     t.datetime "started_at", null: false
     t.string "status", default: "running", null: false
@@ -51,12 +52,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_120000) do
     t.datetime "created_at", null: false
     t.string "external_id", null: false
     t.bigint "film_id", null: false
+    t.datetime "removed_at"
     t.datetime "starts_at", null: false
     t.string "status", default: "scheduled", null: false
     t.datetime "updated_at", null: false
     t.bigint "venue_id", null: false
     t.index ["external_id"], name: "index_screenings_on_external_id", unique: true
     t.index ["film_id"], name: "index_screenings_on_film_id"
+    t.index ["removed_at"], name: "index_screenings_on_removed_at"
     t.index ["starts_at"], name: "index_screenings_on_starts_at"
     t.index ["venue_id"], name: "index_screenings_on_venue_id"
   end

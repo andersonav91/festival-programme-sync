@@ -9,6 +9,7 @@ class ProgrammeSync
     :venues_updated,
     :screenings_created,
     :screenings_updated,
+    :screenings_removed,
     :records_failed,
     :errors,
     :run,
@@ -26,10 +27,12 @@ class ProgrammeSync
     run = recorder.start
     result = empty_result(run)
     page = 1
+    seen_external_ids = []
 
     loop do
       payload = client.fetch_page(page)
       payload.fetch("screenings").each do |record|
+        seen_external_ids << record["id"] if record["id"].present?
         sync_record(record, result)
       end
 
@@ -38,6 +41,7 @@ class ProgrammeSync
       page += 1
     end
 
+    remove_stale_screenings(result, seen_external_ids) if result.records_failed.zero?
     recorder.finish(run, result)
     result
   rescue UpstreamError => e
@@ -64,6 +68,13 @@ class ProgrammeSync
     result.errors << error_payload(type: "record", message: e.message, screening_id: record["id"])
   end
 
+  def remove_stale_screenings(result, seen_external_ids)
+    now = Time.current
+    result.screenings_removed = Screening.active
+      .where.not(external_id: seen_external_ids)
+      .update_all(removed_at: now, updated_at: now)
+  end
+
   def error_payload(type:, message:, page: nil, screening_id: nil)
     {
       type: type,
@@ -82,6 +93,7 @@ class ProgrammeSync
       venues_updated: 0,
       screenings_created: 0,
       screenings_updated: 0,
+      screenings_removed: 0,
       records_failed: 0,
       errors: [],
       run: run

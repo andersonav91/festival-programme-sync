@@ -36,7 +36,7 @@ class ScreeningsQuery
   end
 
   def call
-    scope = Screening.left_joins(:film, :venue).includes(:film, :venue)
+    scope = Screening.active.left_joins(:film, :venue).includes(:film, :venue)
     scope = filter_by_venue(scope)
     scope = filter_by_date(scope)
     scope = filter_by_title(scope)

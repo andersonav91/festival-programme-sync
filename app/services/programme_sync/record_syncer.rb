@@ -58,7 +58,8 @@ class ProgrammeSync
         film: film,
         venue: venue,
         starts_at: Time.zone.parse(record.fetch("starts_at")),
-        status: record.fetch("status")
+        status: record.fetch("status"),
+        removed_at: nil
       )
 
       changes.record(:screenings, created: created, changed: screening.changed?)

@@ -30,6 +30,7 @@ date field.
 `ScreeningsQuery` owns the filtering logic:
 
 - Eager loads `film` and `venue` to avoid N+1 queries in the results loop.
+- Excludes screenings marked as removed by the sync.
 - Filters by `venue_id`.
 - Filters by `starts_at` date.
 - Searches film titles with a sanitized `ILIKE` query.

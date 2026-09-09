@@ -27,7 +27,8 @@ class ProgrammeSync
         venues_created_count: result.venues_created,
         venues_updated_count: result.venues_updated,
         screenings_created_count: result.screenings_created,
-        screenings_updated_count: result.screenings_updated
+        screenings_updated_count: result.screenings_updated,
+        screenings_removed_count: result.screenings_removed
       )
     end
 

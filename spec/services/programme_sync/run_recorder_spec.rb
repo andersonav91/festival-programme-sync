@@ -22,13 +22,18 @@ RSpec.describe ProgrammeSync::RunRecorder do
       venues_created: 1,
       venues_updated: 0,
       screenings_created: 2,
-      screenings_updated: 0
+      screenings_updated: 0,
+      screenings_removed: 1
     )
 
     recorder.finish(run, result)
 
     expect(run).to be_completed
-    expect(run).to have_attributes(processed_count: 2, screenings_created_count: 2)
+    expect(run).to have_attributes(
+      processed_count: 2,
+      screenings_created_count: 2,
+      screenings_removed_count: 1
+    )
   end
 
   it "marks a run failed when errors are present" do
@@ -43,7 +48,8 @@ RSpec.describe ProgrammeSync::RunRecorder do
       venues_created: 0,
       venues_updated: 0,
       screenings_created: 0,
-      screenings_updated: 0
+      screenings_updated: 0,
+      screenings_removed: 0
     )
 
     recorder.finish(run, result)

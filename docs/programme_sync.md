@@ -16,6 +16,12 @@ rolled back, captured in the run errors and the sync continues with later
 records. If the upstream API fails between pages, records already committed stay
 in place and the run is marked as failed.
 
+When a full sync completes without record-level failures, screenings missing
+from the upstream payload are soft-deleted by setting `removed_at`. They stay in
+the database for auditability but are excluded from the public screenings query.
+Stale removal is skipped on upstream failures and malformed record runs because
+the local dataset may be incomplete.
+
 The API client sets explicit Faraday timeouts: 2 seconds to open the connection
 and 5 seconds for the request. Slow or unreachable upstream responses are wrapped
 as `ProgrammeSync::UpstreamError`, which keeps them on the same observability and
@@ -57,6 +63,8 @@ Current coverage proves that:
 - Running the same generation twice is idempotent.
 - Generation 2 updates existing rows and inserts new screenings without
   duplicating films or venues.
+- Generation 2 marks screenings omitted upstream as removed without deleting the
+  local row.
 - `fail_after=8` preserves the eight records already processed and records the
   upstream failure.
 - Upstream timeouts are wrapped as upstream failures.

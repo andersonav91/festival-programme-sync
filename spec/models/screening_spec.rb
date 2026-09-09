@@ -45,4 +45,12 @@ RSpec.describe Screening, type: :model do
 
     expect(screening).not_to be_valid
   end
+
+  it "scopes active screenings to records not removed upstream" do
+    active = create(:screening)
+    removed = create(:screening, removed_at: Time.current)
+
+    expect(described_class.active).to contain_exactly(active)
+    expect(removed).to be_removed
+  end
 end
