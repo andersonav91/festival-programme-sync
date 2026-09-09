@@ -1,92 +1,78 @@
-# Festival Programme Sync — Take-Home
+# Festival Programme Sync
 
-**Role:** Senior Rails / Hotwire Developer · **Time box:** 4 hours
-**Stack:** Rails 8, Hotwire, PostgreSQL, Sidekiq, Tailwind (all in Docker)
+Rails 8 app for syncing a film festival programme from the mock upstream API at
+`/mock_api/screenings`.
 
-## Context
+## Running
 
-You're joining a team that maintains a film festival's public website. It's a
-Rails monolith that also acts as the editorial CMS, and it pulls programming data
-from an external festival-management system over an API.
-
-That external system is the source of truth for films, venues and screenings. Our
-database holds a local copy so the site renders fast and stays up under load.
-Today that copy is refreshed by a nightly script a colleague wrote in a hurry, and
-it's been causing problems.
-
-**Your job is to replace it.**
-
-## What we've given you
-
-A working Rails 8 app with `Film`, `Venue` and `Screening` models, a mock external
-API at `/mock_api` that behaves like the real one including its failure modes, an
-existing `VenueSync` service and its tests, a screenings index with a filter form,
-and seed data.
-
-### Running it
-
-Everything runs in Docker. One step:
+Everything runs in Docker:
 
 ```bash
 docker compose up --build
 ```
 
-That starts Postgres, Redis, the Rails web server, a Tailwind watcher and Sidekiq,
-and creates/migrates/seeds the database on first boot.
-
 - App: <http://localhost:3000>
-- Sidekiq dashboard: <http://localhost:3000/sidekiq>
-- Postgres is exposed on host port **5544** (non-standard, so it won't collide)
+- Screenings: <http://localhost:3000/screenings>
+- Sidekiq: <http://localhost:3000/sidekiq>
+- PostgreSQL: `localhost:5544`
+- Redis: `localhost:6380`
 
-Handy commands (see the `Makefile`):
+Useful commands:
 
 ```bash
-make console   # rails console inside the web container
-make test      # run the RSpec suite
-make sh        # a shell in the web container
+make test      # run RSpec
+make console   # Rails console inside Docker
+make sh        # shell inside Docker
+make psql      # psql into the development database
 ```
 
-## What we'd like you to build
+Run the sync manually from the console:
 
-1. **A programme sync.** Pull screenings from `GET /mock_api/screenings` into our
-   database. It's paginated, returns nested film and venue data, and behaves like a
-   real third-party API: sometimes slow, sometimes failing partway through, and its
-   records change between runs.
+```ruby
+ProgrammeSyncJob.perform_later(generation: 1)
+ProgrammeSyncJob.perform_later(generation: 2)
+ProgrammeSyncJob.perform_later(generation: 1, fail_after: 8)
+```
 
-   Running it twice must not create duplicates. Running it after upstream data
-   changes must update the local copy. If the API fails partway, records already
-   retrieved shouldn't be lost. It should run on a schedule as a background job, and
-   we should be able to tell afterwards whether a run succeeded and what it did.
+## Implementation Notes
 
-2. **A filtered screenings list.** The index at `/screenings` has a filter form that
-   reloads the whole page. Make it update just the results. Filters are date, venue,
-   and a text search across titles. Keep it server-rendered; we're a Hotwire shop and
-   aren't looking for a client-side rendering layer.
+The sync uses upstream ids as local `external_id` values for films, venues and
+screenings. That keeps imports idempotent across repeated runs and handles
+upstream renames without duplicate rows. I fixed the inherited `VenueSync` bug
+where venues were matched by `name`; that would create a second venue when the
+upstream system renames an existing venue.
 
-3. **A short README.** Half a page. What you'd do differently with more time, anything
-   in the existing code you'd change and why, and any assumptions you made.
+`ProgrammeSync` is split into smaller service objects for the API client,
+record-level transactional upserts, change counting, run recording and locking.
+Each screening is synced in its own transaction, so malformed records can be
+captured without rolling back prior records. API failures between pages mark the
+run failed while preserving records already committed.
 
-## Testing the mock API
+Every run writes a `ProgrammeSyncRun` with status, timestamps, request params,
+created/updated counters and captured errors. `ProgrammeSyncJob` runs through
+Sidekiq and uses a PostgreSQL advisory lock so overlapping jobs are skipped and
+recorded instead of importing concurrently.
 
-| Parameter      | Effect                                                                                                     |
-| -------------- | ---------------------------------------------------------------------------------------------------------- |
-| `?page=2`      | Pagination, 25 records per page                                                                            |
-| `?generation=2`| The dataset after upstream changes. Screenings have moved venue, some are cancelled, a film has been retitled, two screenings are new. |
-| `?fail_after=8`| Returns 8 records, then a 500                                                                              |
-| `?slow=true`   | Six-second delay                                                                                           |
+The screenings list remains server-rendered. The filter form targets the Turbo
+Frame around the results table, supports date, venue and title search, and the
+query eager loads films and venues to avoid N+1 lookups.
 
-Sync `generation=1`, then `generation=2`, and check the database is right. Then try
-`generation=1&fail_after=8` and check nothing was lost.
+## Trade-offs
 
-## What we care about
+I left upstream deletion handling explicit rather than automatic: when generation
+2 omits `SCR-0060`, the local row is retained. In production I would confirm
+whether disappearing upstream records mean deletion, cancellation, embargo or API
+bug before mutating public programme data.
 
-- **Correctness under failure, ahead of feature completeness.** If you run short, a
-  sync that handles the edge cases and a filter that doesn't quite work beats the
-  reverse.
-- Tests are expected — at least for the sync and the models. Tests for the view
-  layer aren't. We're looking at how you test, not just that you did, so write
-  your own; the repo doesn't hand you a test plan.
+With more time I would add a schedule configuration for Sidekiq, operational UI
+for recent sync runs, alerting around failed runs, and richer retry/backoff rules
+for upstream outages.
 
-## Submitting
+## Verification
 
-A private git repo with your commits. Please don't squash.
+```bash
+docker compose run --rm -e RAILS_ENV=test web sh -c "bin/rails db:prepare && bundle exec rspec"
+docker compose run --rm web bundle exec rubocop
+```
+
+Current suite enforces at least 80% line and branch coverage through SimpleCov.
