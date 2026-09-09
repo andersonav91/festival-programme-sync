@@ -16,3 +16,6 @@ The suite enforces minimum coverage for both line and branch coverage:
 
 - Line coverage: 80%
 - Branch coverage: 80%
+
+The request and query specs also cover the server-rendered screenings filters,
+including the Turbo Frame contract and title search.
