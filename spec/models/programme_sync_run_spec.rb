@@ -9,6 +9,12 @@ RSpec.describe ProgrammeSyncRun, type: :model do
     expect(run).to be_running
   end
 
+  it "supports skipped runs for overlap protection" do
+    run.status = "skipped"
+
+    expect(run).to be_skipped
+  end
+
   it "requires a started_at timestamp" do
     run.started_at = nil
 

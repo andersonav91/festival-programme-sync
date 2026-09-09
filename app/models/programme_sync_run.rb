@@ -1,5 +1,5 @@
 class ProgrammeSyncRun < ApplicationRecord
-  enum :status, { running: "running", completed: "completed", failed: "failed" }, default: "running"
+  enum :status, { running: "running", completed: "completed", failed: "failed", skipped: "skipped" }, default: "running"
 
   validates :status, presence: true
   validates :started_at, presence: true

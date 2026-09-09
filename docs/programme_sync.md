@@ -32,9 +32,19 @@ The sync is split into small service objects:
 - `ProgrammeSync::ChangeSet` tracks created/updated counters without mixing
   counting logic into persistence code.
 - `ProgrammeSync::RunRecorder` owns `ProgrammeSyncRun` lifecycle updates.
+- `ProgrammeSync::Lock` owns the PostgreSQL advisory lock used by the background
+  job to prevent overlapping syncs.
 
 This keeps the public entry point simple while separating API, persistence,
 counting and observability responsibilities.
+
+## Background Job
+
+`ProgrammeSyncJob` runs the sync through Sidekiq via ActiveJob. The job acquires
+a PostgreSQL advisory lock before starting so two Sidekiq workers cannot run the
+programme sync at the same time. If another sync already holds the lock, the job
+records a skipped `ProgrammeSyncRun` with an overlap error instead of starting a
+second import.
 
 Current coverage proves that:
 
@@ -45,3 +55,5 @@ Current coverage proves that:
 - `fail_after=8` preserves the eight records already processed and records the
   upstream failure.
 - Malformed screening payloads are captured without abandoning the whole run.
+- The background job calls the sync when the lock is available and records a
+  skipped run when another sync is already running.
